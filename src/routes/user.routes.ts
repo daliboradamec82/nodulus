@@ -1,22 +1,39 @@
 import { Router } from 'express';
 import User from '../models/User';
 import auth from '../middleware/auth';
+import { requireAdmin, requireSuperAdmin, requirePermission } from '../middleware/role.middleware';
+import { PaginationUtils } from '../utils/pagination.utils';
 
 const router = Router();
 
-// GET /api/users - Získat všechny uživatele
-router.get('/', auth, async (req, res) => {
+// GET /api/users - Získat všechny uživatele (pouze admin)
+router.get('/', auth, requirePermission('manage_users'), async (req, res) => {
   try {
-    const users = await User.find({}, '-password'); // Vynecháme heslo z výsledků
-    res.json(users);
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    
+    // Získání celkového počtu uživatelů
+    const total = await User.countDocuments({});
+    
+    // Získání uživatelů s pagination
+    const users = await User.find({}, '-password')
+      .skip(paginationOptions.skip)
+      .limit(paginationOptions.limit)
+      .sort({ createdAt: -1 });
+    
+    // Nastavení pagination hlaviček
+    PaginationUtils.setPaginationHeaders(res, total, paginationOptions);
+    
+    // Vrácení paginated response
+    const response = PaginationUtils.createPaginatedResponse(users, total, paginationOptions);
+    res.json(response);
   } catch (error) {
     console.error('Chyba při načítání uživatelů:', error);
     res.status(500).json({ message: 'Interní chyba serveru' });
   }
 });
 
-// PATCH /api/users/:id - Aktualizovat roli uživatele
-router.patch('/:id', auth, async (req, res) => {
+// PATCH /api/users/:id - Aktualizovat roli uživatele (pouze super admin)
+router.patch('/:id', auth, requireSuperAdmin, async (req, res) => {
   try {
     const { role } = req.body;
     const user = await User.findByIdAndUpdate(
@@ -36,8 +53,8 @@ router.patch('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id - Smazat uživatele
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/users/:id - Smazat uživatele (pouze admin)
+router.delete('/:id', auth, requireAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     

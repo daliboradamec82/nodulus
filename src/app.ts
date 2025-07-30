@@ -2,15 +2,17 @@ import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import session from 'express-session';
-import RedisStore from 'connect-redis';
-import redisClient from './config/redis';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user.routes';
 import positionRoutes from './routes/positions';
 import extensionRoutes from './routes/extension';
+import { SessionConfigManager } from './config/session.config';
+import { SecurityMiddleware } from './middleware/security.middleware';
 
 const app = express();
+
+// Security middleware (musí být první)
+app.use(SecurityMiddleware.allSecurityMiddleware);
 
 // Middleware
 app.use(express.json());
@@ -20,20 +22,7 @@ app.use(cors({
 }));
 
 // Session middleware s Redis
-app.use(session({
-  store: new RedisStore({ 
-    client: redisClient,
-    prefix: 'sess:'
-  }),
-  secret: process.env.SESSION_SECRET || 'tajny_klic_pro_session',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 // 24 hodin
-  }
-}));
+app.use(SessionConfigManager.getSessionMiddleware());
 
 // Připojení k MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/auth-app')

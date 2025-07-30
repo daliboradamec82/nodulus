@@ -43,7 +43,7 @@ class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-      console.log('Registration confirmation email sent to:', to);
+      console.log('Registration confirmation email sent successfully');
     } catch (error) {
       console.error('Error sending registration confirmation email:', error);
       throw new Error('Failed to send registration confirmation email');
@@ -77,7 +77,7 @@ class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-      console.log('Password reset email sent to:', to);
+      console.log('Password reset email sent successfully');
     } catch (error) {
       console.error('Error sending password reset email:', error);
       throw new Error('Failed to send password reset email');

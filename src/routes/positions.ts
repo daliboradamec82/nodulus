@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { Position } from '../models/position.model';
 import auth from '../middleware/auth';
+import mongoose from 'mongoose';
+import { sanitizeInput } from '../middleware/validation.middleware';
+import { PaginationUtils } from '../utils/pagination.utils';
 
 const router = Router();
 
@@ -8,9 +11,23 @@ const router = Router();
 router.get('/', auth, async (req, res) => {
   try {
     console.log('Získání seznamu pozic');
-    const positions = await Position.find();
-    console.log('Pozice:', positions);
-    res.json(positions);
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    
+    // Získání celkového počtu pozic
+    const total = await Position.countDocuments({});
+    
+    // Získání pozic s pagination
+    const positions = await Position.find()
+      .skip(paginationOptions.skip)
+      .limit(paginationOptions.limit)
+      .sort({ createdAt: -1 });
+    
+    // Nastavení pagination hlaviček
+    PaginationUtils.setPaginationHeaders(res, total, paginationOptions);
+    
+    // Vrácení paginated response
+    const response = PaginationUtils.createPaginatedResponse(positions, total, paginationOptions);
+    res.json(response);
   } catch (error) {
     console.error('Chyba při načítání pozic:', error);
     res.status(500).json({ message: 'Chyba při načítání pozic' });
@@ -18,7 +35,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Vytvoření nové pozice
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, sanitizeInput, async (req, res) => {
   try {
     const { NamePosition, DescribePosition, Account, AnalyzePositions } = req.body;
     
@@ -37,8 +54,13 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Aktualizace pozice
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, sanitizeInput, async (req, res) => {
   try {
+    // Validace ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Neplatné ID pozice' });
+    }
+
     const { NamePosition, DescribePosition, Account,AnalyzePositions } = req.body;
     
     const position = await Position.findByIdAndUpdate(
@@ -58,8 +80,13 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Aktualizace pozice (POST)
-router.post('/:id', auth, async (req, res) => {
+router.post('/:id', auth, sanitizeInput, async (req, res) => {
   try {
+    // Validace ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Neplatné ID pozice' });
+    }
+
     console.log('Aktualizace pozice - ID:', req.params.id);
     console.log('Aktualizace pozice - Body:', req.body);
     const { NamePosition, DescribePosition, Account,AnalyzePositions } = req.body;
@@ -100,6 +127,11 @@ router.post('/:id', auth, async (req, res) => {
 // Smazání pozice
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // Validace ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Neplatné ID pozice' });
+    }
+
     const position = await Position.findByIdAndDelete(req.params.id);
     
     if (!position) {

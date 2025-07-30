@@ -22,7 +22,10 @@ export default (req: Request, res: Response, next: NextFunction): void => {
 
   try {
     // Ověření tokenu
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as JwtPayload;
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
     req.user = decoded;
     next();
   } catch (error) {

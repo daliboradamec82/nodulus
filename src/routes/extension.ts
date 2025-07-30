@@ -1,6 +1,8 @@
 import express from 'express';
 import { Router } from 'express';
 import axios from 'axios';
+import auth from '../middleware/auth';
+import { requirePermission } from '../middleware/role.middleware';
 
 const router: Router = express.Router();
 
@@ -9,7 +11,7 @@ let lastReceivedData: any = null;
 let lastLogTime: number = 0;
 
 // GET endpoint pro získání dat
-router.get('/data', (req, res) => {
+router.get('/data', auth, requirePermission('access_extension'), (req, res) => {
   const currentTime = Date.now();
   // Logujeme pouze jednou za 5 sekund
   if (currentTime - lastLogTime > 5000) {
@@ -35,7 +37,7 @@ router.get('/data', (req, res) => {
 });
 
 // POST endpoint pro příjem dat z rozšíření
-router.post('/data', async (req, res) => {
+router.post('/data', auth, requirePermission('access_extension'), async (req, res) => {
   try {
     console.log('Received request body:', req.body);
     const { url, textContent } = req.body;
@@ -55,9 +57,10 @@ router.post('/data', async (req, res) => {
     };
     let mappedData;
 
-    // Pošli požadavek na externí server
+    // Pošli požadavek na externí server s timeoutem
     if(true){ const response = await axios.post('http://localhost:8000/predictAll', payload, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000 // 10 sekund timeout
       });
 
       // Přemapuj odpověď do požadovaného formátu

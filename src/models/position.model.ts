@@ -30,4 +30,14 @@ const positionSchema = new mongoose.Schema({
   _id: false // Zakážeme automatické generování _id
 });
 
+// Vytvoření indexů pro rychlé vyhledávání
+positionSchema.index({ NamePosition: 1 });
+positionSchema.index({ Account: 1 });
+positionSchema.index({ createdAt: -1 });
+positionSchema.index({ updatedAt: -1 });
+
+// Složené indexy pro často používané dotazy
+positionSchema.index({ NamePosition: 1, Account: 1 });
+positionSchema.index({ Account: 1, createdAt: -1 });
+
 export const Position = mongoose.model('UserPosition', positionSchema); 

@@ -21,7 +21,9 @@ interface Config {
 export const config: Config = {
   port: parseInt(process.env.PORT || '5000', 10),
   mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/security_app',
-  jwtSecret: process.env.JWT_SECRET || 'default-secret-key',
+  jwtSecret: process.env.JWT_SECRET || (() => {
+    throw new Error('JWT_SECRET environment variable is required');
+  })(),
   email: {
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.EMAIL_PORT || '587', 10),
